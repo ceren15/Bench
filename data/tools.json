@@ -1,0 +1,557 @@
+{
+  "version": "1.0.0",
+  "notes": "118.studio tool catalog. Parameter schema is OpenAI/Anthropic function-calling compatible JSON Schema. Each parameter carries an 'x-arg-kind' extension: closed = enum/boolean (decision models can fill via Choice/Noul); span = verbatim value present in the user message (domain, hex color, quoted name; decision models select among regex-parsed candidates); free = text that must be generated (only an LLM can fill; decision models are NOT scored on it); context = taken from session state by orchestrator code (never asked to any model). 'x-precedence' gives the deterministic execution order used by the orchestrator when several tools are needed. 'x-side-effect': none = safe to retry; reversible = safe to retry once on transient errors; irreversible/mixed = see notes, never auto-retry the paid action. Turkish descriptions: 'x-description-tr', 'x-option-descriptions-tr', 'pseudo_actions_tr' (used when the benchmark runs with question_language=tr).",
+  "pseudo_actions": {
+    "no_tool": "No tool is needed: greeting, thanks, general knowledge question, question about the platform, or out-of-scope request. The assistant answers in text.",
+    "clarify": "A tool is probably needed but a REQUIRED parameter is missing or the request is ambiguous between tools; the assistant must ask the user a question before acting."
+  },
+  "tools": [
+    {
+      "name": "create_site",
+      "description": "Create a brand-new website project from scratch (portfolio, blog, business site, landing page, online store, personal brand, event, restaurant). Use ONLY when the user wants a new site; not for adding a page to an existing site.",
+      "x-precedence": 10,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_type": {
+            "type": "string",
+            "enum": [
+              "portfolio",
+              "blog",
+              "business",
+              "landing",
+              "ecommerce",
+              "personal_brand",
+              "event",
+              "restaurant"
+            ],
+            "description": "Kind of website.",
+            "x-arg-kind": "closed",
+            "x-option-descriptions": {
+              "portfolio": "showcase of creative or professional work (designer, photographer, architect, developer)",
+              "blog": "a site centred on articles or posts",
+              "business": "company or service business site (agency, clinic, consultancy, law firm)",
+              "landing": "single page for one product, app, campaign or waitlist",
+              "ecommerce": "online store that sells products",
+              "personal_brand": "personal site / CV / about-me for an individual (coach, speaker, influencer)",
+              "event": "site for a wedding, conference, festival or meetup",
+              "restaurant": "restaurant, cafe or bar with menu and reservations"
+            },
+            "x-option-descriptions-tr": {
+              "portfolio": "yaratıcı/profesyonel işlerin sergilendiği site (tasarımcı, fotoğrafçı, mimar, yazılımcı)",
+              "blog": "yazılar/gönderiler etrafında kurulu site",
+              "business": "şirket veya hizmet işletmesi sitesi (ajans, klinik, danışmanlık, hukuk bürosu, muhasebe)",
+              "landing": "tek bir ürün, uygulama, kampanya veya bekleme listesi için tek sayfa",
+              "ecommerce": "ürün satan online mağaza",
+              "personal_brand": "bir kişinin kişisel sitesi / CV / hakkımda (koç, konuşmacı, influencer)",
+              "event": "düğün, konferans, festival veya buluşma sitesi",
+              "restaurant": "restoran, kafe, kahveci veya bar; menü ve rezervasyon"
+            }
+          },
+          "style": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "modern",
+              "playful",
+              "corporate",
+              "elegant",
+              "bold"
+            ],
+            "description": "Overall visual style.",
+            "x-arg-kind": "closed",
+            "x-optional-default": "modern"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "tr",
+              "en",
+              "de",
+              "fr",
+              "es",
+              "ar"
+            ],
+            "description": "Primary content language of the site.",
+            "x-arg-kind": "closed",
+            "x-optional-default": "tr"
+          },
+          "site_name": {
+            "type": "string",
+            "description": "Brand or site name exactly as the user wrote it.",
+            "x-arg-kind": "span"
+          },
+          "description": {
+            "type": "string",
+            "description": "Short summary of what the site is about, in the user's words.",
+            "x-arg-kind": "free"
+          }
+        },
+        "required": [
+          "site_type"
+        ]
+      },
+      "x-side-effect": "reversible",
+      "x-description-tr": "Sıfırdan YENİ bir web sitesi projesi oluşturur (portfolyo, blog, işletme sitesi, tek sayfalık tanıtım, online mağaza, kişisel marka, etkinlik, restoran). Yalnızca kullanıcı yeni bir site istediğinde; mevcut siteye sayfa eklemek için DEĞİL."
+    },
+    {
+      "name": "add_page",
+      "description": "Add a new page to the EXISTING site (about, contact, services, pricing, blog index, gallery, FAQ, testimonials, team). Not for changing an existing section and not for creating a new site.",
+      "x-precedence": 20,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "description": "Current site id.",
+            "x-arg-kind": "context"
+          },
+          "page_type": {
+            "type": "string",
+            "enum": [
+              "about",
+              "contact",
+              "services",
+              "pricing",
+              "blog_index",
+              "gallery",
+              "faq",
+              "testimonials",
+              "team"
+            ],
+            "description": "Type of the page to add.",
+            "x-arg-kind": "closed",
+            "x-option-descriptions": {
+              "about": "about us / about me / our story",
+              "contact": "contact form, address, map, phone",
+              "services": "what we offer / service list",
+              "pricing": "plans, packages, price table",
+              "blog_index": "blog / news / articles list page",
+              "gallery": "photo or work gallery",
+              "faq": "frequently asked questions",
+              "testimonials": "customer reviews / references",
+              "team": "team members"
+            },
+            "x-option-descriptions-tr": {
+              "about": "hakkımızda / hakkımda / hikayemiz",
+              "contact": "iletişim formu, adres, harita, telefon",
+              "services": "sunduklarımız / hizmet listesi",
+              "pricing": "planlar, paketler, fiyat tablosu",
+              "blog_index": "blog / haberler / yazılar listesi sayfası",
+              "gallery": "fotoğraf veya iş galerisi",
+              "faq": "sıkça sorulan sorular (SSS)",
+              "testimonials": "müşteri yorumları / referanslar",
+              "team": "ekip üyeleri"
+            }
+          },
+          "title": {
+            "type": "string",
+            "description": "Custom page title if the user gives one.",
+            "x-arg-kind": "span"
+          }
+        },
+        "required": [
+          "site_id",
+          "page_type"
+        ]
+      },
+      "x-side-effect": "reversible",
+      "x-description-tr": "MEVCUT siteye yeni bir sayfa ekler (hakkımızda, iletişim, hizmetler, fiyatlar, blog listesi, galeri, SSS, müşteri yorumları, ekip). Var olan bir bölümü değiştirmek veya yeni site kurmak için değil."
+    },
+    {
+      "name": "edit_section",
+      "description": "Change ONE section of ONE page of the existing site: its layout, its text, its image, or remove it. For a site-wide color/font change use update_theme; for writing long new copy such as a blog post use generate_content.",
+      "x-precedence": 30,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "x-arg-kind": "context"
+          },
+          "page": {
+            "type": "string",
+            "enum": [
+              "home",
+              "about",
+              "contact",
+              "services",
+              "pricing",
+              "blog_index",
+              "gallery",
+              "faq",
+              "testimonials",
+              "team"
+            ],
+            "description": "Page that contains the section. Defaults to the page the user is currently viewing.",
+            "x-arg-kind": "closed",
+            "x-optional-default": "@context.current_page"
+          },
+          "section": {
+            "type": "string",
+            "enum": [
+              "header",
+              "hero",
+              "features",
+              "gallery",
+              "testimonials",
+              "cta",
+              "pricing_table",
+              "contact_form",
+              "footer"
+            ],
+            "description": "Section to change.",
+            "x-arg-kind": "closed",
+            "x-option-descriptions": {
+              "header": "top navigation bar / menu / logo area",
+              "hero": "the big banner at the top of the page with the main headline",
+              "features": "feature / benefit / service cards",
+              "gallery": "image grid",
+              "testimonials": "customer quotes block",
+              "cta": "call-to-action band with a button",
+              "pricing_table": "price table",
+              "contact_form": "the form visitors fill in",
+              "footer": "bottom of the page: links, copyright, social icons"
+            },
+            "x-option-descriptions-tr": {
+              "header": "üstteki menü / navigasyon / logo alanı",
+              "hero": "sayfanın en üstündeki büyük ana görsel ve ana başlık alanı",
+              "features": "özellik / fayda / hizmet kartları",
+              "gallery": "görsel ızgarası",
+              "testimonials": "müşteri yorumları bloğu",
+              "cta": "butonlu harekete geçirici bant",
+              "pricing_table": "fiyat tablosu",
+              "contact_form": "ziyaretçinin doldurduğu form",
+              "footer": "sayfanın altı: linkler, telif, sosyal medya ikonları"
+            }
+          },
+          "change_type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "layout",
+              "image",
+              "color",
+              "remove"
+            ],
+            "description": "Kind of change on this section only.",
+            "x-arg-kind": "closed"
+          },
+          "instruction": {
+            "type": "string",
+            "description": "What exactly to change.",
+            "x-arg-kind": "free"
+          }
+        },
+        "required": [
+          "site_id",
+          "section",
+          "change_type"
+        ]
+      },
+      "x-side-effect": "reversible",
+      "x-description-tr": "Mevcut sitenin TEK bir sayfasındaki TEK bir bölümü değiştirir: düzenini, yazısını, görselini, rengini ya da bölümü kaldırır. Sitenin tamamında renk/font değişikliği için update_theme; uzun yeni metin yazmak için generate_content kullanılır."
+    },
+    {
+      "name": "update_theme",
+      "description": "Change the GLOBAL look of the whole site: color palette, font pairing, dark/light mode, primary brand color. Applies to every page. For changing one section only use edit_section.",
+      "x-precedence": 25,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "x-arg-kind": "context"
+          },
+          "palette": {
+            "type": "string",
+            "enum": [
+              "keep",
+              "warm",
+              "cool",
+              "monochrome",
+              "pastel",
+              "earthy",
+              "vibrant",
+              "dark"
+            ],
+            "description": "Palette family.",
+            "x-arg-kind": "closed",
+            "x-optional-default": "keep"
+          },
+          "font_pair": {
+            "type": "string",
+            "enum": [
+              "keep",
+              "serif_classic",
+              "sans_modern",
+              "mono_tech",
+              "handwritten"
+            ],
+            "x-arg-kind": "closed",
+            "x-optional-default": "keep"
+          },
+          "primary_color": {
+            "type": "string",
+            "description": "Hex color like #1E40AF if the user gives one.",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "x-arg-kind": "span"
+          }
+        },
+        "required": [
+          "site_id"
+        ]
+      },
+      "x-side-effect": "reversible",
+      "x-description-tr": "Sitenin TAMAMININ görünümünü değiştirir: renk paleti, font eşleşmesi, koyu/açık tema, ana marka rengi. Her sayfaya uygulanır. Tek bölüm için edit_section kullanılır."
+    },
+    {
+      "name": "generate_content",
+      "description": "Write NEW copy with AI: a blog post, product descriptions, an about-us text, SEO meta descriptions, a slogan. Produces text for the user to review; does not change layout.",
+      "x-precedence": 40,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "x-arg-kind": "context"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "blog_post",
+              "product_description",
+              "about_text",
+              "seo_meta",
+              "slogan",
+              "service_description"
+            ],
+            "x-arg-kind": "closed"
+          },
+          "tone": {
+            "type": "string",
+            "enum": [
+              "professional",
+              "friendly",
+              "playful",
+              "luxury",
+              "inspirational"
+            ],
+            "x-arg-kind": "closed",
+            "x-optional-default": "friendly"
+          },
+          "length": {
+            "type": "string",
+            "enum": [
+              "short",
+              "medium",
+              "long"
+            ],
+            "x-arg-kind": "closed",
+            "x-optional-default": "medium"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "tr",
+              "en",
+              "de",
+              "fr",
+              "es",
+              "ar"
+            ],
+            "x-arg-kind": "closed",
+            "x-optional-default": "@context.site_language"
+          },
+          "topic": {
+            "type": "string",
+            "description": "What the copy is about.",
+            "x-arg-kind": "free"
+          }
+        },
+        "required": [
+          "site_id",
+          "content_type"
+        ]
+      },
+      "x-side-effect": "none",
+      "x-description-tr": "Yapay zekayla YENİ metin yazar: blog yazısı, ürün açıklamaları, hakkımızda metni, SEO meta açıklamaları, slogan, hizmet açıklamaları. Kullanıcının onayına metin üretir; düzeni değiştirmez."
+    },
+    {
+      "name": "generate_image",
+      "description": "Create an image with AI (hero visual, logo, gallery image, blog cover). Use when the user wants a new visual generated, not when they upload their own.",
+      "x-precedence": 45,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "x-arg-kind": "context"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "hero",
+              "logo",
+              "gallery",
+              "blog_cover",
+              "favicon"
+            ],
+            "x-arg-kind": "closed"
+          },
+          "image_style": {
+            "type": "string",
+            "enum": [
+              "photo",
+              "illustration",
+              "3d",
+              "flat",
+              "watercolor"
+            ],
+            "x-arg-kind": "closed",
+            "x-optional-default": "photo"
+          },
+          "aspect_ratio": {
+            "type": "string",
+            "enum": [
+              "1:1",
+              "16:9",
+              "4:3",
+              "9:16"
+            ],
+            "x-arg-kind": "closed",
+            "x-optional-default": "@derive_from_target"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Description of the image.",
+            "x-arg-kind": "free"
+          }
+        },
+        "required": [
+          "site_id",
+          "target"
+        ]
+      },
+      "x-side-effect": "none",
+      "x-description-tr": "Yapay zekayla görsel üretir (ana görsel/hero, logo, galeri görseli, blog kapağı, favicon). Kullanıcı kendi görselini yüklediğinde değil, yeni görsel üretilmesi istendiğinde."
+    },
+    {
+      "name": "analyze_site",
+      "description": "Run an audit on the existing site and return a report: SEO, page speed/performance, accessibility, or mobile friendliness. Read-only; changes nothing.",
+      "x-precedence": 50,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "x-arg-kind": "context"
+          },
+          "analysis_type": {
+            "type": "string",
+            "enum": [
+              "seo",
+              "performance",
+              "accessibility",
+              "mobile",
+              "full"
+            ],
+            "x-arg-kind": "closed"
+          }
+        },
+        "required": [
+          "site_id",
+          "analysis_type"
+        ]
+      },
+      "x-side-effect": "none",
+      "x-description-tr": "Mevcut sitede denetim yapar ve rapor döner: SEO, sayfa hızı/performans, erişilebilirlik veya mobil uyumluluk. Salt okunur; hiçbir şeyi değiştirmez."
+    },
+    {
+      "name": "manage_domain",
+      "description": "Domain operations: check whether a domain is available, buy a new domain, or connect a domain the user already owns. Does NOT publish the site.",
+      "x-precedence": 60,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "x-arg-kind": "context"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "check_availability",
+              "purchase",
+              "connect_existing"
+            ],
+            "x-arg-kind": "closed",
+            "x-option-descriptions": {
+              "check_availability": "only ask whether the name is free / taken",
+              "purchase": "buy / register a new domain",
+              "connect_existing": "point a domain the user already owns (e.g. bought from GoDaddy) to the site"
+            },
+            "x-option-descriptions-tr": {
+              "check_availability": "yalnızca alan adının boş mu dolu mu olduğunu sormak",
+              "purchase": "yeni bir alan adı satın almak / kaydetmek",
+              "connect_existing": "kullanıcının zaten sahip olduğu (ör. GoDaddy'den aldığı) alan adını siteye yönlendirmek"
+            }
+          },
+          "domain": {
+            "type": "string",
+            "description": "Domain name exactly as written, e.g. ayseyilmaz.com",
+            "x-arg-kind": "span"
+          }
+        },
+        "required": [
+          "site_id",
+          "action",
+          "domain"
+        ]
+      },
+      "x-side-effect": "mixed",
+      "x-side-effect-notes": "check_availability is read-only and safe to retry; purchase charges the user's card and must NEVER be retried automatically after a failure.",
+      "x-description-tr": "Alan adı işlemleri: bir alan adının boşta olup olmadığını kontrol etmek, yeni alan adı satın almak veya kullanıcının zaten sahip olduğu alan adını siteye bağlamak. Siteyi YAYINLAMAZ."
+    },
+    {
+      "name": "publish_site",
+      "description": "Publish the site: either a private preview link for review, or a live production release on the connected domain / free subdomain. Not for domain purchase.",
+      "x-precedence": 70,
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "string",
+            "x-arg-kind": "context"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "preview",
+              "production"
+            ],
+            "x-arg-kind": "closed",
+            "x-option-descriptions": {
+              "preview": "private preview / test link to share for feedback before going live",
+              "production": "make it live / public for everyone"
+            },
+            "x-option-descriptions-tr": {
+              "preview": "canlıya almadan önce geri bildirim için paylaşılacak gizli önizleme / test linki",
+              "production": "herkese açık, canlı yayın"
+            }
+          }
+        },
+        "required": [
+          "site_id",
+          "environment"
+        ]
+      },
+      "x-side-effect": "reversible",
+      "x-description-tr": "Siteyi yayınlar: ya inceleme için gizli bir önizleme linki ya da bağlı alan adında/ücretsiz alt alan adında herkese açık canlı yayın. Alan adı satın almak için değil."
+    }
+  ],
+  "pseudo_actions_tr": {
+    "no_tool": "Araç gerekmiyor: selamlaşma, teşekkür, genel bilgi sorusu, platform hakkında soru, tavsiye isteği veya desteklenmeyen bir istek. Asistan metinle cevap verir.",
+    "clarify": "Muhtemelen bir araç gerekiyor ama ZORUNLU bir bilgi eksik ya da istek araçlar arasında belirsiz; asistan harekete geçmeden önce kullanıcıya soru sormalı."
+  }
+}

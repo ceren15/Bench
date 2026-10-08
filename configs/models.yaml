@@ -1,0 +1,86 @@
+# 118.studio decision-model benchmark — model registry & run settings.
+# Prices/limits verified from public sources in Oct 2026; re-check before each campaign.
+output_dir: results
+
+run:
+  dataset: data/dataset.jsonl        # Turkish main set. English control: data/dataset_en_control.jsonl
+  question_language: tr              # tr | en — run both: Turkish messages, but models mostly saw English instructions
+  repeats: 3                         # >1 enables the consistency metric
+  perturb_option_order: true         # repeats 2..N shuffle option order (order-sensitivity test)
+  warmup: 5
+  seed: 118
+  need_threshold: 0.5
+  gate_threshold: null               # e.g. 0.7 → low-confidence calls become "clarify"
+  compact_state: false
+  store_answers: false
+  # weights/efficiency/gates override the defaults in bench118/metrics.py
+  weights: null
+  efficiency: null
+  gates: null
+
+models:
+  # --- pipeline dry run (no keys, no GPU) -------------------------------------------------
+  - name: mock-keyword
+    adapter: mock
+    enabled: true
+
+  # --- TypeSafe Jev (closed, hosted) ------------------------------------------------------
+  # POST https://api.typesafe.ai/v1/systemone ; $0.042 / 1M input tokens, output free; 32k context.
+  - name: jev
+    adapter: systemone_http
+    enabled: false
+    url: https://api.typesafe.ai/v1/systemone
+    model: jev-latest                 # pin an exact version (e.g. jev-1.13) for reproducible campaigns
+    api_key_env: TYPESAFE_API_KEY
+    price_per_mtok_input: 0.042
+    caps: {max_concurrency: 8, context_tokens: 32000}
+
+  # --- Cloudflare Clef / Clef-flash (open weights, hosted on Workers AI) --------------------
+  # $0.24 (Clef) / $0.09 (Clef-flash) per 1M input tokens on Workers AI; 64k context; Jev-API compatible.
+  - name: clef
+    adapter: systemone_http
+    enabled: false
+    url: https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef
+    model: clef
+    api_key_env: CLOUDFLARE_AUTH_TOKEN
+    unwrap: auto                      # Cloudflare REST may wrap the body in {"result": ...}
+    price_per_mtok_input: 0.24
+    caps: {max_concurrency: 8, context_tokens: 65536}
+  - name: clef-flash
+    adapter: systemone_http
+    enabled: false
+    url: https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/cloudflare/clef-flash
+    model: clef-flash
+    api_key_env: CLOUDFLARE_AUTH_TOKEN
+    unwrap: auto
+    price_per_mtok_input: 0.09
+    caps: {max_concurrency: 8, context_tokens: 65536}
+
+  # --- Kev (open source, self-hosted, mirrors /v1/systemone) -------------------------------
+  # Local server on 127.0.0.1, no auth, one request at a time. 9B needs a BF16 CUDA GPU.
+  - name: kev-9b
+    adapter: systemone_http
+    enabled: false
+    url: http://127.0.0.1:8000/v1/systemone   # adjust to the port your Kev server prints
+    model: kev-9b
+    price_per_hour: 2.0               # your GPU's hourly cost → cost metric
+    caps: {max_concurrency: 1, context_tokens: 8192, local: false}
+
+  # --- Laya (open source, in-process) ------------------------------------------------------
+  # Turkish → multilingual checkpoint (1,024-token window). English checkpoint is NOT suitable.
+  - name: laya-multilingual
+    adapter: laya_local
+    enabled: false
+    repo: convaiinnovations/laya
+    subfolder: multilingual
+    price_per_hour: 0.35              # e.g. a T4
+
+  # --- LLM baseline (native tool calling; any OpenAI-compatible endpoint) -------------------
+  - name: llm-baseline
+    adapter: openai_llm
+    enabled: false
+    base_url: https://api.openai.com/v1
+    model: YOUR-LLM-MODEL-ID          # the LLM you would otherwise use for routing
+    api_key_env: OPENAI_API_KEY
+    price_per_mtok_input: 0.0         # fill in from your provider's current price list
+    price_per_mtok_output: 0.0
