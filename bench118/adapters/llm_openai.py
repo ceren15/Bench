@@ -26,13 +26,19 @@ SYSTEM = ("You are the routing layer of 118.studio, an AI website builder. Decid
 class OpenAICompatibleLLMAdapter(Adapter):
     def __init__(self, name: str, base_url: str, model: str, api_key_env: str | None = "OPENAI_API_KEY",
                  catalog: Catalog | None = None, temperature: float = 0.0, timeout_s: float = 60.0,
-                 price_per_mtok_input: float = 0.0, price_per_mtok_output: float = 0.0, caps: dict | None = None):
+                 price_per_mtok_input: float = 0.0, price_per_mtok_output: float = 0.0, caps: dict | None = None,
+                 extra_body: dict | None = None, max_tokens: int | None = None, price_per_hour: float = 0.0):
+        # extra_body is merged into every request, e.g. {"chat_template_kwargs": {"enable_thinking": false}} for
+        # Qwen3.x on vLLM/SGLang, so a reasoning model answers directly instead of thinking first.
         self.name, self.base_url, self.model = name, base_url.rstrip("/"), model
         self.api_key_env, self.temperature, self.timeout_s = api_key_env, temperature, timeout_s
         self.catalog = catalog or Catalog()
         self.tools = self.catalog.openai_tools()
         self.caps = Capabilities(**({"kind": "llm", "max_concurrency": 4} | (caps or {})))
         self.price_per_mtok_input, self.price_per_mtok_output = price_per_mtok_input, price_per_mtok_output
+        self.extra_body = extra_body or {}
+        self.price_per_hour = price_per_hour   # self-hosted GPU (e.g. vLLM on Modal): cost = runtime x rate
+        self.max_tokens = max_tokens
 
     def _post(self, body):
         hdr = {"Content-Type": "application/json"}
@@ -47,6 +53,9 @@ class OpenAICompatibleLLMAdapter(Adapter):
         body = {"model": self.model, "temperature": self.temperature, "tools": self.tools, "tool_choice": "required",
                 "messages": [{"role": "system", "content": SYSTEM},
                              {"role": "user", "content": json.dumps(state, ensure_ascii=False)}]}
+        if self.max_tokens:
+            body["max_tokens"] = self.max_tokens
+        body.update(self.extra_body)
         payload, ms = await asyncio.to_thread(self._post, body)
         msg = payload["choices"][0]["message"]
         calls = []

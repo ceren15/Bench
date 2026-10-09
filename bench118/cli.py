@@ -4,6 +4,7 @@ Command line:
   python -m bench118 validate [data/dataset.jsonl]
   python -m bench118 run --config configs/models.yaml [--models jev,clef] [--categories A,B] [--max-tests 50]
   python -m bench118 compile --test A-0001 --step 1          # show exactly what a model receives
+  python -m bench118 export-laya [--out data/laya_ft]        # Laya fine-tuning data + train/test split
 """
 from __future__ import annotations
 
@@ -55,9 +56,10 @@ def _run(args):
         except Exception as e:  # one broken backend must not kill the whole run
             print(f"  ✗ {a.name} failed: {type(e).__name__}: {e}")
             continue
-        s = res["score"]
-        print(f"  quality={s['quality']:.1f} efficiency={(s['efficiency'] or 0):.1f} overall={s['overall']:.1f} "
-              f"routing={res['metrics']['routing_accuracy']:.3f} p95={res['metrics']['latency_ms_p95']:.0f}ms")
+        s, m = res["score"], res["metrics"]
+        f = lambda v, nd=1: "—" if v is None else f"{v:.{nd}f}"
+        print(f"  quality={f(s['quality'])} efficiency={f(s['efficiency'])} overall={f(s['overall'])} "
+              f"routing={f(m.get('routing_accuracy'), 3)} p95={f(m.get('latency_ms_p95'), 0)}ms errors={m.get('errors')}")
         results.append(res)
     if results:
         md = report.write(results, meta, out)
@@ -84,6 +86,13 @@ def main(argv=None):
     c = sub.add_parser("compile")
     c.add_argument("--test", required=True); c.add_argument("--step", type=int, default=1)
     c.add_argument("--dataset"); c.add_argument("--question-language", choices=["tr", "en"]); c.add_argument("--show", type=int, default=4)
+    sub.add_parser("export-laya", add_help=False)
+    if argv is None:
+        import sys
+        argv = sys.argv[1:]
+    if argv[:1] == ["export-laya"]:
+        from .laya_export import main as em
+        return em(argv[1:])
     a = p.parse_args(argv)
     if a.cmd == "validate":
         from .validate import main as vm

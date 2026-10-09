@@ -1,0 +1,67 @@
+{
+  "dataset": "data/laya_ft/dataset_test.jsonl",
+  "dataset_sha": "cde91f77bccddaec",
+  "tools_sha": "be4207c37dd8628f",
+  "n_tests": 192,
+  "n_steps": 314,
+  "config": {
+    "repeats": 3,
+    "warmup": 5,
+    "seed": 118,
+    "perturb_option_order": true,
+    "gate_threshold": null,
+    "need_threshold": 0.5,
+    "compact_state": false,
+    "question_language": "tr",
+    "dataset": "data/laya_ft/dataset_test.jsonl",
+    "categories": null,
+    "max_tests": null,
+    "store_answers": false,
+    "weights": null,
+    "efficiency": null,
+    "gates": null,
+    "extra": {}
+  },
+  "python": "3.13.15 (main, Aug  6 2026, 11:06:22) [GCC 13.3.0]",
+  "platform": "Linux-6.18.48+-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "adapters": [
+    {
+      "name": "laya-ml-base",
+      "class": "LayaLocalAdapter",
+      "caps": {
+        "kind": "decision",
+        "max_choice_options": 255,
+        "max_score_levels": 10,
+        "max_questions_per_request": null,
+        "context_tokens": 1024,
+        "max_concurrency": 1,
+        "supports_noul": true,
+        "supports_score": true,
+        "local": true,
+        "notes": []
+      },
+      "price_per_mtok_input": 0.0,
+      "price_per_hour": 0.0
+    },
+    {
+      "name": "laya-ml-ft",
+      "class": "LayaLocalAdapter",
+      "caps": {
+        "kind": "decision",
+        "max_choice_options": 255,
+        "max_score_levels": 10,
+        "max_questions_per_request": null,
+        "context_tokens": 1024,
+        "max_concurrency": 1,
+        "supports_noul": true,
+        "supports_score": true,
+        "local": true,
+        "notes": []
+      },
+      "price_per_mtok_input": 0.0,
+      "price_per_hour": 0.0
+    }
+  ],
+  "started": "2026-10-09T10:44:49+0000"
+}

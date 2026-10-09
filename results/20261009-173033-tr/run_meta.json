@@ -1,0 +1,49 @@
+{
+  "dataset": "data/laya_ft/dataset_test.jsonl",
+  "dataset_sha": "cde91f77bccddaec",
+  "tools_sha": "be4207c37dd8628f",
+  "n_tests": 192,
+  "n_steps": 314,
+  "config": {
+    "repeats": 3,
+    "warmup": 5,
+    "seed": 118,
+    "perturb_option_order": true,
+    "gate_threshold": null,
+    "need_threshold": 0.5,
+    "compact_state": false,
+    "question_language": "tr",
+    "dataset": "data/laya_ft/dataset_test.jsonl",
+    "categories": null,
+    "max_tests": null,
+    "store_answers": false,
+    "weights": null,
+    "efficiency": null,
+    "gates": null,
+    "extra": {}
+  },
+  "python": "3.9.6 (default, May 22 2026, 11:13:45) \n[Clang 21.0.0 (clang-2100.1.1.101)]",
+  "platform": "macOS-26.7.1-arm64-arm-64bit",
+  "machine": "arm64",
+  "adapters": [
+    {
+      "name": "qwen3.5-9b-modal",
+      "class": "OpenAICompatibleLLMAdapter",
+      "caps": {
+        "kind": "llm",
+        "max_choice_options": 255,
+        "max_score_levels": 10,
+        "max_questions_per_request": null,
+        "context_tokens": null,
+        "max_concurrency": 8,
+        "supports_noul": true,
+        "supports_score": true,
+        "local": false,
+        "notes": []
+      },
+      "price_per_mtok_input": 0.0,
+      "price_per_hour": 1.95
+    }
+  ],
+  "started": "2026-10-09T17:30:33+0300"
+}

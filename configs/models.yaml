@@ -44,6 +44,7 @@ models:
     model: clef
     api_key_env: CLOUDFLARE_AUTH_TOKEN
     unwrap: auto                      # Cloudflare REST may wrap the body in {"result": ...}
+    safe_ids: true                    # Workers AI rejects "?" and "=" in question ids
     price_per_mtok_input: 0.24
     caps: {max_concurrency: 8, context_tokens: 65536}
   - name: clef-flash
@@ -53,6 +54,7 @@ models:
     model: clef-flash
     api_key_env: CLOUDFLARE_AUTH_TOKEN
     unwrap: auto
+    safe_ids: true
     price_per_mtok_input: 0.09
     caps: {max_concurrency: 8, context_tokens: 65536}
 
@@ -66,6 +68,19 @@ models:
     price_per_hour: 2.0               # your GPU's hourly cost → cost metric
     caps: {max_concurrency: 1, context_tokens: 8192, local: false}
 
+  # Kev-9B (Qwen3.5-9B base) on your own Modal endpoint: deploy jaredpalmer/kev skills/kev-deploy/scripts/kev_serve.py
+  # with KEV_MODEL=jaredpalmer/kev-9b and KEV_API_KEY set; Modal picks an H100 (~$3.95/h) and scales to zero when idle.
+  - name: kev-9b-modal
+    adapter: systemone_http
+    enabled: false
+    url: https://ceren-karabag--kev-api.modal.run/v1/systemone
+    model: kev-latest
+    api_key_env: KEV_API_KEY
+    timeout_s: 180
+    max_retries: 4
+    price_per_hour: 3.95              # H100 on Modal; cost = wall time x rate (an estimate for an autoscaled endpoint)
+    caps: {max_concurrency: 8, context_tokens: 65536}
+
   # --- Laya (open source, in-process) ------------------------------------------------------
   # Turkish → multilingual checkpoint (1,024-token window). English checkpoint is NOT suitable.
   - name: laya-multilingual
@@ -74,6 +89,42 @@ models:
     repo: convaiinnovations/laya
     subfolder: multilingual
     price_per_hour: 0.35              # e.g. a T4
+
+  # --- Vercel AI Gateway (same /v1/evaluate contract for every System One model) -----------
+  # Key: AI_GATEWAY_API_KEY (vck_...). Laya is free on the gateway; Jev is $0.042 / 1M input tokens.
+  - name: laya-vercel
+    adapter: systemone_http
+    enabled: false
+    url: https://ai-gateway.vercel.sh/v1/evaluate
+    model: convaiinnovations/laya
+    api_key_env: AI_GATEWAY_API_KEY
+    dialect: vercel
+    max_criterion_chars: 120          # gateway rejects longer option descriptions (HTTP 422)
+    timeout_s: 60
+    max_retries: 8                    # free tier is heavily rate-limited (HTTP 429)
+    price_per_mtok_input: 0.0
+    caps: {max_concurrency: 1, context_tokens: 8192}
+  - name: jev-vercel
+    adapter: systemone_http
+    enabled: false
+    url: https://ai-gateway.vercel.sh/v1/evaluate
+    model: typesafe-ai/jev
+    api_key_env: AI_GATEWAY_API_KEY
+    dialect: vercel
+    timeout_s: 60
+    price_per_mtok_input: 0.042
+    caps: {max_concurrency: 4, context_tokens: 32000}
+
+  # --- Laya fine-tuned on this benchmark (notebooks/laya_finetune_bench118_kaggle.ipynb) ------
+  # Unzip laya_bench118_ft.zip from Kaggle into models/laya_bench118_ft. Needs `pip install laya`
+  # (Python >= 3.10). Evaluate on data/laya_ft/dataset_test.jsonl only — the rest was used for training.
+  - name: laya-ft-local
+    adapter: laya_local
+    enabled: false
+    repo: models/laya_bench118_ft
+    subfolder: null
+    max_len: 1152
+    head_max_len: 640
 
   # --- LLM baseline (native tool calling; any OpenAI-compatible endpoint) -------------------
   - name: llm-baseline
@@ -84,3 +135,18 @@ models:
     api_key_env: OPENAI_API_KEY
     price_per_mtok_input: 0.0         # fill in from your provider's current price list
     price_per_mtok_output: 0.0
+
+  # --- Qwen3.5-9B as an LLM (native tool calling) on your own Modal endpoint: deploy/qwen_vllm_modal.py ----
+  # Same base model as Kev-9B, used as a generative LLM instead of a decision head. Thinking is switched off.
+  - name: qwen3.5-9b-modal
+    adapter: openai_llm
+    enabled: false
+    base_url: https://ceren-karabag--qwen-vllm-serve.modal.run/v1
+    model: qwen3.5-9b
+    api_key_env: QWEN_API_KEY
+    timeout_s: 180
+    max_tokens: 512
+    extra_body: {chat_template_kwargs: {enable_thinking: false}}
+    price_per_mtok_input: 0.0
+    caps: {max_concurrency: 8}
+

@@ -47,6 +47,16 @@ ham satırlar `rows_*.jsonl` ve tekrar üretilebilirlik için `run_meta.json` (v
 | `bench118/runner.py` | Eşzamanlılık, tekrarlar, ısınma, seçenek sırası karıştırma, kaynak ölçümü |
 | `tests/test_pipeline.py` | Oracle testi + Türkçe ek/normalizasyon testleri |
 
+## Laya fine-tuning (Kaggle)
+
+```bash
+python -m bench118 export-laya        # data/laya_ft/: %70 eğitim / %30 test (kategoriye göre dengeli, noisy kopyalar aynı tarafta)
+```
+
+`notebooks/laya_finetune_bench118_kaggle.ipynb` Kaggle'da `laya-multilingual`'ı eğitim kısmıyla eğitir ve hazır ile
+eğitilmiş modeli **yalnızca test kısmında** karşılaştırır. Eğitilmiş Laya'yı ana veri setinin tamamında ölçmeyin:
+%70'ini eğitimde gördü. Test kısmı aynı şablonlardan üretildiği için puan gerçek kullanıcı mesajlarındakinden iyimserdir.
+
 ## Bilinen sınırlar
 
 - Karar modelleri metin üretmez: `free` argümanlar (açıklama, prompt, talimat) bu modellerde puanlanmaz; LLM katmanına aittir.
